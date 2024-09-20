@@ -1,6 +1,5 @@
-// middleware/auth.js dans auth-service
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
-
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -8,9 +7,12 @@ function authMiddleware(req, res, next) {
 
   if (token == null) return res.sendStatus(401);
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, decodedToken) => {
     if (err) return res.sendStatus(403);
-    req.user = user;
+    req.user = {
+      id: decodedToken.userId,
+      role: decodedToken.role
+    };
     next();
   });
 }

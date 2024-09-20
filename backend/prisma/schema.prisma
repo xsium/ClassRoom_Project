@@ -10,15 +10,262 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  role      String
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("users")
+model Role {
+  id       Int     @id @default(autoincrement())
+  name     String  @db.VarChar(30)
+  UserRole   UserRole[]
 }
 
-// Ajoutez d'autres modèles ici selon les besoins du projet CLASSROOM
+model CourseCategory {
+  id       Int      @id @default(autoincrement())
+  name     String   @db.VarChar(50)
+  categorize Categorize[]
+}
+
+model Term {
+  id        Int      @id @default(autoincrement())
+  start     DateTime @db.Date
+  name      String   @db.VarChar(50)
+  end       DateTime @db.Date
+  users     User[]
+}
+
+model Skill {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(50)
+  description  String?   @db.Text
+  levels       Level[]
+  complete     Complete[]
+  confirm      Confirm[]
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique @db.VarChar(255)
+  password          String    @db.VarChar(255)
+  firstname         String?   @db.VarChar(50)
+  lastname          String?   @db.VarChar(50)
+  birthdate         DateTime? @db.Date
+  phone             String?   @db.VarChar(50)
+  creation_date     DateTime  @default(now())
+  modification_date DateTime  @updatedAt
+  account_valid     Boolean?
+  avatar            String?   @db.VarChar(255)
+  description       String?   @db.Text
+  pseudo            String?   @db.VarChar(50)
+  fb                String?   @db.VarChar(255)
+  linkedin          String?   @db.VarChar(255)
+  city              String?   @db.VarChar(50)
+  account_active    Boolean?
+  term              Term?     @relation(fields: [term_id], references: [id])
+  term_id           Int?
+  UserRole            UserRole[]
+  own               Course[]
+  promote           Promote[]
+  study             Study[]
+  remember          Remember[]
+  make              Make[]
+  complete          Complete[]
+  blogArticles      BlogArticle[]
+  comments          Comment[]
+  media             Media[]
+}
+
+model Course {
+  id                Int       @id @default(autoincrement())
+  title             String    @db.VarChar(50)
+  creation_date     DateTime  @default(now())
+  description       String?   @db.Text
+  modification_date DateTime  @updatedAt
+  duration          Int?
+  validation        Boolean?
+  owner             User      @relation(fields: [user_id], references: [id])
+  user_id           Int
+  promote           Promote[]
+  study             Study[]
+  remember          Remember[]
+  categorize        Categorize[]
+  modules           Module[]
+  confirm           Confirm[]
+}
+
+model Module {
+  id                Int       @id @default(autoincrement())
+  title             String    @db.VarChar(255)
+  description       String?   @db.Text
+  creation_date     DateTime  @default(now())
+  modification_date DateTime? @updatedAt
+  course            Course    @relation(fields: [course_id], references: [id])
+  course_id         Int
+  lessons           Lesson[]
+}
+
+model Lesson {
+  id                Int       @id @default(autoincrement())
+  title             String    @db.VarChar(50)
+  content           String    @db.Text
+  duration_minute   Int?
+  creation_date     DateTime  @default(now())
+  modification_date DateTime? @updatedAt
+  description       String?   @db.Text
+  module            Module    @relation(fields: [module_id], references: [id])
+  module_id         Int
+  assignment        Assignment?
+  have              Have[]
+}
+
+model Assignment {
+  id        Int       @id @default(autoincrement())
+  due_date  DateTime?
+  submit    Boolean?
+  lesson    Lesson    @relation(fields: [lesson_id], references: [id])
+  lesson_id Int       @unique
+  make      Make[]
+  grades    Grade[]
+}
+
+model Grade {
+  id                Int       @id @default(autoincrement())
+  value             Int?
+  creation_date     DateTime  @default(now())
+  modification_date DateTime? @updatedAt
+  assignment        Assignment @relation(fields: [assignment_id], references: [id])
+  assignment_id     Int
+}
+
+model Media {
+  id        Int     @id @default(autoincrement())
+  img       String? @db.VarChar(255)
+  video     String? @db.VarChar(255)
+  audio     String? @db.VarChar(255)
+  doc       String? @db.VarChar(255)
+  user      User?   @relation(fields: [user_id], references: [id])
+  user_id   Int?
+  have      Have[]
+  associate Associate[]
+}
+
+model Level {
+  id        Int     @id @default(autoincrement())
+  name      String? @db.VarChar(50)
+  skill     Skill   @relation(fields: [skill_id], references: [id])
+  skill_id  Int
+}
+
+model BlogArticle {
+  id                Int       @id @default(autoincrement())
+  title             String    @db.VarChar(255)
+  content           String    @db.Text
+  creation_date     DateTime  @default(now())
+  modification_date DateTime? @updatedAt
+  author            User      @relation(fields: [user_id], references: [id])
+  user_id           Int
+  comments          Comment[]
+  associate         Associate[]
+}
+
+model Comment {
+  id                Int       @id @default(autoincrement())
+  content           String    @db.Text
+  creation_date     DateTime  @default(now())
+  modification_date DateTime? @updatedAt
+  active            Boolean?
+  user              User      @relation(fields: [user_id], references: [id])
+  user_id           Int
+  blogArticle       BlogArticle @relation(fields: [blog_article_id], references: [id])
+  blog_article_id   Int
+  parentComment     Comment?  @relation("CommentReplies", fields: [parent_comment_id], references: [id])
+  parent_comment_id Int?
+  replies           Comment[] @relation("CommentReplies")
+}
+
+// Association tables
+model UserRole {
+  user    User    @relation(fields: [user_id], references: [id])
+  user_id Int
+  role    Role    @relation(fields: [role_id], references: [id])
+  role_id Int
+
+  @@id([user_id, role_id])
+}
+
+model Promote {
+  user      User    @relation(fields: [user_id], references: [id])
+  user_id   Int
+  course    Course  @relation(fields: [course_id], references: [id])
+  course_id Int
+
+  @@id([user_id, course_id])
+}
+
+model Study {
+  user      User    @relation(fields: [user_id], references: [id])
+  user_id   Int
+  course    Course  @relation(fields: [course_id], references: [id])
+  course_id Int
+
+  @@id([user_id, course_id])
+}
+
+model Remember {
+  user      User    @relation(fields: [user_id], references: [id])
+  user_id   Int
+  course    Course  @relation(fields: [course_id], references: [id])
+  course_id Int
+
+  @@id([user_id, course_id])
+}
+
+model Categorize {
+  course    Course  @relation(fields: [course_id], references: [id])
+  course_id Int
+  category  CourseCategory @relation(fields: [course_category_id], references: [id])
+  course_category_id Int
+
+  @@id([course_id, course_category_id])
+}
+
+model Make {
+  user          User    @relation(fields: [user_id], references: [id])
+  user_id       Int
+  assignment    Assignment @relation(fields: [assignment_id], references: [id])
+  assignment_id Int
+
+  @@id([user_id, assignment_id])
+}
+
+model Have {
+  lesson    Lesson  @relation(fields: [lesson_id], references: [id])
+  lesson_id Int
+  media     Media   @relation(fields: [media_id], references: [id])
+  media_id  Int
+
+  @@id([lesson_id, media_id])
+}
+
+model Complete {
+  user      User    @relation(fields: [user_id], references: [id])
+  user_id   Int
+  skill     Skill   @relation(fields: [skill_id], references: [id])
+  skill_id  Int
+
+  @@id([user_id, skill_id])
+}
+
+model Confirm {
+  course    Course  @relation(fields: [course_id], references: [id])
+  course_id Int
+  skill     Skill   @relation(fields: [skill_id], references: [id])
+  skill_id  Int
+
+  @@id([course_id, skill_id])
+}
+
+model Associate {
+  media           Media   @relation(fields: [media_id], references: [id])
+  media_id        Int
+  blogArticle     BlogArticle @relation(fields: [blog_article_id], references: [id])
+  blog_article_id Int
+
+  @@id([media_id, blog_article_id])
+}
