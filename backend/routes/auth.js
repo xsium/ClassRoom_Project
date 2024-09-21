@@ -18,7 +18,7 @@ router.post('/register', auth, async (req, res) => { // Ajout du middleware d'au
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Trouver le rôle correspondant
-    const role = await prisma.role.findFirst({ // Changement ici
+    const role = await prisma.role.findFirst({ 
       where: { name: roleName } // Utiliser findFirst pour rechercher par nom
     });
 
@@ -98,6 +98,34 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Erreur lors de la connexion:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+router.get('/user', auth, async (req, res) => {
+  console.log('req.user', req.user);
+  try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { id: true, firstname: true, email: true, UserRole: { include: { role: true } } }
+
+      });
+      if (!user) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
+      res.json({ user });
+  } catch (error) {
+      console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+      res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// Route pour récupérer les rôles
+router.get('/roles', async (req, res) => {
+  try {
+    const roles = await prisma.role.findMany();
+    res.json(roles);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des rôles:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des rôles' });
   }
 });
 
